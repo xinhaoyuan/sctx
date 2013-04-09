@@ -61,7 +61,7 @@ public class SmartContext extends Service {
 		
 		WifiRule rule = new WifiRule();
 		rule.ssid = "Columbia University";
-		rule.list_type = rule.LIST_TYPE_BLACK;
+		rule.list_type = WifiRule.LIST_TYPE_BLACK;
 		rule.level_threshold = -100;
 		rule.result_context = "School";
 		wifi.addRule(rule);

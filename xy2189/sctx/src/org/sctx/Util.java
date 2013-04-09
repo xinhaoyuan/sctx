@@ -1,8 +1,6 @@
 package org.sctx;
 
 import android.util.Log;
-import android.view.View;
-import android.widget.ScrollView;
 import android.widget.TextView;
 
 class Util {
