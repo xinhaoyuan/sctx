@@ -1,10 +1,13 @@
 package org.sctx;
 
+import java.io.BufferedReader;
+import java.io.Reader;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.StringTokenizer;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -65,6 +68,19 @@ class WifiContext {
 		r.remove(rule);
 		if (r.isEmpty()) ssidToRules.remove(rule.ssid);
 		rules.remove(rule);
+	}
+	
+	void addRuleFromReader(Reader r) {
+		BufferedReader in = new BufferedReader(r);
+		while (true) {
+			String line;
+			try { line = in.readLine(); }
+			catch(Exception x) { line = null; }
+			if (line == null) break;
+			
+			StringTokenizer tokens = new StringTokenizer(line);
+			// TODO: parse rules
+		}
 	}
 	
 	void unbind() {
