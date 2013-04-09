@@ -1,34 +1,93 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/LinearLayout1"
+    android:id="@+id/MainLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical" >
-
-    <TextView
-        android:id="@+id/logText"
-        android:layout_width="fill_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content" >
 
         <Button
-            android:id="@+id/stopBtn"
+            android:id="@+id/LogTabBtn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Stop" />
+            android:text="Log" />
 
         <Button
-            android:id="@+id/startBtn"
+            android:id="@+id/WifiRuleTabBtn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Start" />
-
+            android:text="Wifi Rules" />
     </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/TabLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1" >
+
+        <LinearLayout
+            android:id="@+id/LogLayout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical" >
+
+            <TextView
+                android:id="@+id/LogText"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="bottom|left"
+                android:scrollbarStyle="insideOverlay"
+                android:scrollbars="vertical"
+                android:singleLine="false"
+                android:textSize="12sp"
+                android:typeface="monospace" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="0" >
+
+                <Button
+                    android:id="@+id/StopBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Stop" />
+
+                <Button
+                    android:id="@+id/ClearBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Clear Log" />
+
+                <Button
+                    android:id="@+id/StartBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Start" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/WifiRuleLayout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical" >
+
+            <TextView
+                android:id="@+id/textView1"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:gravity="center_vertical|center_horizontal"
+                android:inputType="textNoSuggestions|textFilter"
+                android:text="Space Holder" />
+        </LinearLayout>
+    </FrameLayout>
 
 </LinearLayout>
