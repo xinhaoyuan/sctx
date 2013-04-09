@@ -10,7 +10,7 @@ class Util {
 			@Override
 			public void run() {
 				try {
-					EntryActivity.singleton.logText.append(msg);
+					EntryActivity.singleton.logText.append(msg + "\n");
 				} catch (Exception x) { }
 			}
 		});

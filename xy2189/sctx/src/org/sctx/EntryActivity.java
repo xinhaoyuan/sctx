@@ -1,6 +1,9 @@
 package org.sctx;
 
 import android.app.Activity;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
 import android.os.Handler;
 import android.content.Intent;
 import android.os.Bundle;
@@ -30,11 +33,27 @@ public class EntryActivity extends Activity
         
 		singleton = this;
 		
-		Util.log("Initializing service\n");
+		Button startBtn = (Button)findViewById(R.id.startBtn);
+		startBtn.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				Util.log("Initializing service");
+				Intent intent = new Intent(v.getContext(), SmartContext.class);
+				intent.setAction("init");
+		        startService(intent);
+			}
+		});
 		
-		Intent intent = new Intent(this, SmartContext.class);
-		intent.setAction("init");
-        startService(intent);
+		Button stopBtn = (Button)findViewById(R.id.stopBtn);
+		stopBtn.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				Util.log("Stoping service");
+				Intent intent = new Intent(v.getContext(), SmartContext.class);
+				intent.setAction("init");
+		        stopService(intent);
+			}
+		});
     }
     
     
