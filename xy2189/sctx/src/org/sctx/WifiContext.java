@@ -70,7 +70,7 @@ class WifiContext {
 		rules.remove(rule);
 	}
 	
-	void addRuleFromReader(Reader r) {
+	void addRulesFromReader(Reader r) {
 		BufferedReader in = new BufferedReader(r);
 		while (true) {
 			String line;
@@ -80,6 +80,8 @@ class WifiContext {
 			
 			StringTokenizer tokens = new StringTokenizer(line);
 			// TODO: parse rules
+			
+			
 		}
 	}
 	
@@ -112,9 +114,9 @@ class WifiContext {
 		while (it.hasNext()) {
 			WifiRule rule = it.next();
 			if (rule.lastRefCount == 0 && rule.refCount > 0)
-				ctx.getContext(rule.result_context);
+				ctx.getExternalContext(rule.result_context);
 			else if (rule.lastRefCount > 0 && rule.refCount == 0)
-				ctx.putContext(rule.result_context);
+				ctx.putExternalContext(rule.result_context);
 		}
 		
 		wifiLastScanResult = result;

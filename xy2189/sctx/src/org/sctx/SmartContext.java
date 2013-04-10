@@ -3,7 +3,10 @@ package org.sctx;
 import java.util.HashMap;
 import android.annotation.SuppressLint;
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ReceiverCallNotAllowedException;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -16,27 +19,28 @@ public class SmartContext extends Service {
 	
 	WifiContext wifi;
 	
-	HashMap<String, Integer> contextRef;
+	HashMap<String, Integer> contextExternalRef;
+	HashMap<String, Integer> contextInternalRef;
 	
-	void getContext(String name) {
-		if (contextRef.containsKey(name)) {
-			contextRef.put(name, contextRef.get(name) + 1);
+	void getExternalContext(String name) {
+		if (contextExternalRef.containsKey(name)) {
+			contextExternalRef.put(name, contextExternalRef.get(name) + 1);
 		}
 		else {
-			contextRef.put(name, 1);
+			contextExternalRef.put(name, 1);
 			enterContext(name);
 		}
 	}
 	
-	void putContext(String name) {
-		if (contextRef.containsKey(name)) {
-			int value = contextRef.get(name);
+	void putExternalContext(String name) {
+		if (contextExternalRef.containsKey(name)) {
+			int value = contextExternalRef.get(name);
 			if (value == 1)
 			{
-				contextRef.remove(name);
+				contextExternalRef.remove(name);
 				leaveContext(name);
 			} else {
-				contextRef.put(name, value - 1);
+				contextExternalRef.put(name, value - 1);
 			}
 		}
 	}
@@ -54,7 +58,8 @@ public class SmartContext extends Service {
 		handler = new Handler();
 		msger = new Messenger(handler);
 		
-		contextRef = new HashMap<String, Integer>();
+		contextExternalRef = new HashMap<String, Integer>();
+		contextInternalRef = new HashMap<String, Integer>();
 		
 		wifi = new WifiContext(this);
 		wifi.onCreate();
@@ -91,6 +96,4 @@ public class SmartContext extends Service {
     public IBinder onBind(Intent intent) {
         return msger.getBinder();
     }
-	
-	
 }
