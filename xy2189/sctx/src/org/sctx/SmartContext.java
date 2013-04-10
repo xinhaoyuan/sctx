@@ -18,6 +18,7 @@ public class SmartContext extends Service {
 	Messenger msger;
 	
 	WifiContext wifi;
+	MotionContext motion;
 	
 	HashMap<String, Integer> contextExternalRef;
 	HashMap<String, Integer> contextInternalRef;
@@ -64,6 +65,9 @@ public class SmartContext extends Service {
 		wifi = new WifiContext(this);
 		wifi.onCreate();
 		
+		motion = new MotionContext(this);
+		motion.onCreate();
+		
 		WifiRule rule = new WifiRule();
 		rule.ssid = "Columbia University";
 		rule.list_type = WifiRule.LIST_TYPE_BLACK;
@@ -72,6 +76,7 @@ public class SmartContext extends Service {
 		wifi.addRule(rule);
 		
 		wifi.bind();
+		motion.bind();
 		
 		Util.log("SmartContext service created");
 	}
@@ -81,7 +86,10 @@ public class SmartContext extends Service {
 		Util.log("Destroying the SmartContext service");
 		
 		wifi.unbind();
+		motion.unbind();
+		
 		wifi.onDestroy();
+		motion.onDestroy();
 	}
 	
 	@SuppressLint("HandlerLeak")
