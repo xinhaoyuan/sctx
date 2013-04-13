@@ -15,9 +15,10 @@ public class MotionContext {
 	
 	static final String sensor_service = Context.SENSOR_SERVICE;
 	SensorManager sensorManager;
+	AccMonitorRunnable monitor;
 	
 	Sensor acc;
-	int accSamplingInterval = 10000;
+	int accSamplingInterval = 2000;
 	int accSamplingLength = 500;
 	
 	class ListenerNode {
@@ -43,23 +44,25 @@ public class MotionContext {
 	}
 	
 	void bind() {
-		if (!active) {
-			ctx.handler.post(new UpdateAccRunnable());
+		if (monitor == null) {
+			monitor = new AccMonitorRunnable();
+			ctx.handler.post(monitor);
 		}
-		active = true;
 	}
 	
 	void unbind() {
-		active = false;
+		monitor.active = false;
+		monitor = null;
 	}
 	
-	class UpdateAccRunnable implements Runnable {
-
+	class AccMonitorRunnable implements Runnable {
+		boolean active = true;
+		
 		@Override
 		public void run() {
 			final AccListener accListener = new AccListener();
 			final ListenerNode node = new ListenerNode(accListener, acc);
-			sensorManager.registerListener(accListener, acc, SensorManager.SENSOR_DELAY_GAME);
+			sensorManager.registerListener(accListener, acc, SensorManager.SENSOR_DELAY_NORMAL);
 			listening.add(node);
 			ctx.handler.postDelayed(new Runnable() {
 				@Override
@@ -71,9 +74,27 @@ public class MotionContext {
 						Util.log("acc: " + accListener.linear_acc[0] + "," + accListener.linear_acc[1] + "," + accListener.linear_acc[2]);
 					}
 					
-					if (active) ctx.handler.postDelayed(new UpdateAccRunnable(), accSamplingInterval);
+					if (active) ctx.handler.postDelayed(this, accSamplingInterval);
 				}
 			}, accSamplingLength);
+		}
+		
+		class AccListener implements SensorEventListener {
+			float[] gravity = new float[3];
+			float[] linear_acc = new float[3];
+			
+			@Override
+			public void onAccuracyChanged(Sensor sensor, int accuracy) {
+			}
+
+			@Override
+			public void onSensorChanged(SensorEvent event) {
+				final float alpha = 0.8f; 
+				for (int i = 0; i < 3; ++ i)
+					gravity[i] = alpha * gravity[i] + (1 - alpha) * event.values[i];
+				for (int i = 0; i < 3; ++ i)
+					linear_acc[i] = event.values[i] - gravity[i];
+			}
 		}
 	};
 	
@@ -84,24 +105,5 @@ public class MotionContext {
 			sensorManager.unregisterListener(node.listener, node.sensor);
 		}
 		listening.clear();
-	}
-	
-	
-	class AccListener implements SensorEventListener {
-		float[] gravity = new float[3];
-		float[] linear_acc = new float[3];
-		
-		@Override
-		public void onAccuracyChanged(Sensor sensor, int accuracy) {
-		}
-
-		@Override
-		public void onSensorChanged(SensorEvent event) {
-			final float alpha = 0.8f; 
-			for (int i = 0; i < 3; ++ i)
-				gravity[i] = alpha * gravity[i] + (1 - alpha) * event.values[i];
-			for (int i = 0; i < 3; ++ i)
-				linear_acc[i] = event.values[i] - gravity[i];
-		}
 	}
 }
