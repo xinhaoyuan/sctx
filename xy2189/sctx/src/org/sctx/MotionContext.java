@@ -18,8 +18,8 @@ public class MotionContext {
 	AccMonitorRunnable monitor;
 	
 	Sensor acc;
-	int accSamplingInterval = 2000;
-	int accSamplingLength = 500;
+	int accSamplingInterval = 3000;
+	int accSamplingLength = 300;
 	
 	class ListenerNode {
 		SensorEventListener listener;
@@ -55,14 +55,20 @@ public class MotionContext {
 		monitor = null;
 	}
 	
+	void setLinearAccContext(float x, float y, float z) {
+		double dis = Math.sqrt(x * x + y * y + z * z);
+		Util.log("Linear Acc: " + dis); 
+	}
+	
 	class AccMonitorRunnable implements Runnable {
 		boolean active = true;
 		
 		@Override
 		public void run() {
+			final AccMonitorRunnable self = this;
 			final AccListener accListener = new AccListener();
 			final ListenerNode node = new ListenerNode(accListener, acc);
-			sensorManager.registerListener(accListener, acc, SensorManager.SENSOR_DELAY_NORMAL);
+			sensorManager.registerListener(accListener, acc, SensorManager.SENSOR_DELAY_GAME);
 			listening.add(node);
 			ctx.handler.postDelayed(new Runnable() {
 				@Override
@@ -70,11 +76,11 @@ public class MotionContext {
 					if (listening.contains(node)) {
 						listening.remove(node);
 						sensorManager.unregisterListener(accListener, acc);
-						Util.log("gravity: " + accListener.gravity[0] + "," + accListener.gravity[1] + "," + accListener.gravity[2]);
-						Util.log("acc: " + accListener.linear_acc[0] + "," + accListener.linear_acc[1] + "," + accListener.linear_acc[2]);
+						setLinearAccContext(accListener.linear_acc[0], accListener.linear_acc[1], accListener.linear_acc[2]);
+						// setLinearAccContext(accListener.gravity[0], accListener.gravity[1], accListener.gravity[2]);
 					}
 					
-					if (active) ctx.handler.postDelayed(this, accSamplingInterval);
+					if (active) ctx.handler.postDelayed(self, accSamplingInterval);
 				}
 			}, accSamplingLength);
 		}

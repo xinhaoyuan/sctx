@@ -6,40 +6,28 @@ import android.util.Log;
 public class SoundContext {
 	
 	SmartContext ctx;
-	int samplingInterval = 200;
+	int samplingInterval = 5000;
+	int samplingRate = 100;
+	int samplingLength = 1000;
+	
 	SoundMonitorRunnable monitor = null;
 	MediaRecorder recorder = null;
+	double background_amp_level = 0.0;
 	
 	SoundContext(SmartContext ctx) {
 		this.ctx = ctx;
 	}
 	
 	void onCreate() {
-		if (recorder == null) {
-			try {
-				recorder = new MediaRecorder();
-				recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-				recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-				recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-				recorder.setOutputFile("/dev/null");
-				recorder.prepare();
-				recorder.start();
-			} catch (Exception x) {
-				x.printStackTrace();
-				recorder = null;
-			}
-		}
+		startRecording();
 	}
 	
 	void onDestory() {
-		if (recorder != null) {
-			recorder.stop();
-			recorder.release();
-			recorder = null;
-		}
+		
 	}
 	
 	void bind() {
+		startRecording();
 		if (monitor == null) {
 			monitor = new SoundMonitorRunnable();
 			ctx.handler.post(monitor);
@@ -49,24 +37,70 @@ public class SoundContext {
 	void unbind() {
 		monitor.active = false;
 		monitor = null;
+		stopRecording();
+	}
+	
+	void startRecording() {
+		if (recorder == null) {
+			try {
+				recorder = new MediaRecorder();
+				recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+				recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+				recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+				recorder.setOutputFile("/dev/null");
+				recorder.prepare();
+				recorder.start();
+				Log.i("DEBUG", "recorder initialized");
+			} catch (Exception x) {
+				x.printStackTrace();
+				recorder = null;
+			}
+		}
+	}
+	
+	void stopRecording() {
+		if (recorder != null) {
+			recorder.stop();
+			recorder.release();
+			recorder = null;
+		}
 	}
 
 	class SoundMonitorRunnable implements Runnable {
 		boolean active = true;
-		double amp_filtered = 0.0;
+		SoundListener listener = null;
+		SoundMonitorRunnable self = this;
 		
 		@Override
 		public void run() {
-			double amp = 0;
-			if (recorder != null) {
-				amp = recorder.getMaxAmplitude();
-			}
-			amp_filtered = amp_filtered * 0.7 + 0.3 * amp;
 			
-			Util.log("AMP: " + amp_filtered);
-			
-			if (active) ctx.handler.postDelayed(this, samplingInterval);
+			ctx.handler.post(listener = new SoundListener());
+			ctx.handler.postDelayed(new Runnable() {
+				@Override
+				public void run() {
+					listener.active = false;
+					listener = null;
+
+					Util.log("Background AMP: " + background_amp_level);
+					
+					if (!active) return;
+					ctx.handler.postDelayed(self, samplingInterval);
+				}
+			}, samplingLength);
 		}
 		
+		class SoundListener implements Runnable {
+			boolean active = true;
+			@Override
+			public void run() {
+				if (!active) return;
+				double amp = 0;
+				if (recorder != null) {
+					amp = recorder.getMaxAmplitude();
+				}
+				background_amp_level = background_amp_level * 0.7 + 0.3 * amp;
+				ctx.handler.postDelayed(this, samplingRate);
+			}
+		}
 	}
 }
