@@ -80,8 +80,6 @@ class WifiContext {
 			
 			StringTokenizer tokens = new StringTokenizer(line);
 			// TODO: parse rules
-			
-			
 		}
 	}
 	
