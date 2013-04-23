@@ -18,8 +18,8 @@ public class MotionContext {
 	AccMonitorRunnable monitor;
 	
 	Sensor acc;
-	int accSamplingInterval = 3000;
-	int accSamplingLength = 300;
+	int accSamplingInterval = 10000;
+	int accSamplingLength = 200;
 	
 	class ListenerNode {
 		SensorEventListener listener;
