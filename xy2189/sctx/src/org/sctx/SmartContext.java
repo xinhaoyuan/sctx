@@ -1,8 +1,14 @@
 package org.sctx;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileReader;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Scanner;
+import java.util.Set;
 
 import org.keplerproject.luajava.JavaFunction;
 import org.keplerproject.luajava.LuaException;
@@ -35,6 +41,8 @@ public class SmartContext extends Service {
 	HashMap<String, Integer> contextExternalRef;
 	HashMap<String, Integer> contextInternalRef;
 	
+	ContextInferenceEngine eng;
+	
 	void getExternalContext(String name) {
 		if (contextExternalRef.containsKey(name)) {
 			contextExternalRef.put(name, contextExternalRef.get(name) + 1);
@@ -59,11 +67,23 @@ public class SmartContext extends Service {
 	}
 	
 	void enterContext(String name) {
-		Util.log("Enter context " + name);
+		ArrayList<String> updateList = new ArrayList<String>();
+		eng.updateSystemSymbol(name, true, updateList);
+		Iterator<String> it = updateList.iterator();
+		while (it.hasNext()) {
+			String symbol = it.next();
+			Util.log("Enter context " + symbol);
+		}
 	}
 	
 	void leaveContext(String name) {
-		Util.log("Leave context " + name);
+		ArrayList<String> updateList = new ArrayList<String>();
+		eng.updateSystemSymbol(name, false, updateList);
+		Iterator<String> it = updateList.iterator();
+		while (it.hasNext()) {
+			String symbol = it.next();
+			Util.log("Leave context " + symbol);
+		}
 	}
 	
 	@Override
@@ -85,11 +105,19 @@ public class SmartContext extends Service {
 		sound = new SoundContext(this);
 		sound.onCreate();
 		
+		eng = new ContextInferenceEngine();
+		try {
+			InputStream is = openFileInput("symbol_rules.txt");
+			eng.init(new InputStreamReader(is));
+		} catch (Exception x) {
+			x.printStackTrace();
+		}
+		
 		WifiRule rule = new WifiRule();
 		rule.ssid = "Columbia University";
 		rule.list_type = WifiRule.LIST_TYPE_BLACK;
 		rule.level_threshold = -100;
-		rule.result_context = "School";
+		rule.result_context = "Wifi@ColumbiaUniversity";
 		wifi.addRule(rule);
 		
 		wifi.bind();
