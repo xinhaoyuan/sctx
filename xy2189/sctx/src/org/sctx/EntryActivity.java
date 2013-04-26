@@ -96,6 +96,18 @@ public class EntryActivity extends Activity
 			tabView.getChildAt(i).setVisibility(i == 0 ? View.VISIBLE : View.INVISIBLE);
     }
     
+    @Override
+    public void onResume() {
+    	super.onResume();
+    	try {
+    		SmartContext.singleton.handler.post(new Runnable() {
+    			@Override
+    			public void run() {
+    				SmartContext.singleton.resetUI();
+    			}
+    		});
+    	} catch (Exception x) { }
+    }
     
     @Override
     public void onDestroy() {

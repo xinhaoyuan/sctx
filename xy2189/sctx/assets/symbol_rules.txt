@@ -1,2 +1,2 @@
-Office,Wifi@ColumbiaUniversity
-Home,Wifi@Home
+Office,Wifi@Office+!Wifi@Home
+Home,Wifi@Home+!Wifi@Office

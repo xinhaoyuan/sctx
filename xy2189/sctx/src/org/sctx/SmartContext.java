@@ -24,6 +24,8 @@ import android.widget.TextView;
 
 public class SmartContext extends Service {
 	
+	static SmartContext singleton = null;
+	
 	Handler handler;
 	Messenger msger;
 	
@@ -109,6 +111,9 @@ public class SmartContext extends Service {
 	
 	@Override
 	public void onCreate() {
+		if (singleton != null) throw new RuntimeException("SmartContext is already running");
+		singleton = this;
+		
 		handler = new Handler();
 		msger = new Messenger(handler);
 		
@@ -191,6 +196,8 @@ public class SmartContext extends Service {
 		wifi.onDestroy();
 		motion.onDestroy();
 		sound.onDestory();
+		
+		singleton = null;
 	}
 	
 	private static byte[] readAll(InputStream input) throws Exception {
@@ -325,4 +332,34 @@ public class SmartContext extends Service {
     public IBinder onBind(Intent intent) {
         return msger.getBinder();
     }
+	
+	public void resetUI() {
+		Iterator<String> it = eng.symbols.keySet().iterator();
+		final ArrayList<String> list = new ArrayList<String>();
+		while (it.hasNext()) {
+			String k = it.next();
+			boolean v = eng.symbols.get(k);
+			if (v) list.add(k);
+		}
+		
+		Util.runInUIThread(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					EntryActivity a = EntryActivity.singleton;
+					a.contextViews.clear();
+					a.contextViewContainer.removeAllViews();
+					
+					Iterator<String> it = list.iterator();
+					while (it.hasNext()) {
+						String k = it.next();
+						TextView tag = new TextView(a);
+						tag.setText(k);
+						a.contextViews.put(k, tag);
+						a.contextViewContainer.addView(tag);
+					}
+				} catch (Exception x) { }
+			}
+		});
+	}
 }

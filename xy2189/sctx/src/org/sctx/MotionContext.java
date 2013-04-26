@@ -75,11 +75,13 @@ public class MotionContext {
 					if (listening.contains(node)) {
 						listening.remove(node);
 						sensorManager.unregisterListener(accListener, acc);
-						setLinearAccContext(accListener.linear_acc[0], accListener.linear_acc[1], accListener.linear_acc[2]);
-						// setLinearAccContext(accListener.gravity[0], accListener.gravity[1], accListener.gravity[2]);
 					}
 					
-					if (active) ctx.handler.postDelayed(self, accSamplingInterval);
+					if (!active) return;
+					
+					setLinearAccContext(accListener.linear_acc[0], accListener.linear_acc[1], accListener.linear_acc[2]);
+					// setLinearAccContext(accListener.gravity[0], accListener.gravity[1], accListener.gravity[2]);
+					ctx.handler.postDelayed(self, accSamplingInterval);
 				}
 			}, accSamplingLength);
 		}
