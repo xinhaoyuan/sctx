@@ -38,30 +38,29 @@ public class SmartContext extends Service {
 	
 	LuaState L;
 	
-	HashMap<String, Integer> contextExternalRef;
-	HashMap<String, Integer> contextInternalRef;
+	HashMap<String, Integer> nativeContextRef;
 	
 	ContextInferenceEngine eng;
 	
-	void getExternalContext(String name) {
-		if (contextExternalRef.containsKey(name)) {
-			contextExternalRef.put(name, contextExternalRef.get(name) + 1);
+	void getNativeContext(String name) {
+		if (nativeContextRef.containsKey(name)) {
+			nativeContextRef.put(name, nativeContextRef.get(name) + 1);
 		}
 		else {
-			contextExternalRef.put(name, 1);
+			nativeContextRef.put(name, 1);
 			enterContext(name);
 		}
 	}
 	
-	void putExternalContext(String name) {
-		if (contextExternalRef.containsKey(name)) {
-			int value = contextExternalRef.get(name);
+	void putNativeContext(String name) {
+		if (nativeContextRef.containsKey(name)) {
+			int value = nativeContextRef.get(name);
 			if (value == 1)
 			{
-				contextExternalRef.remove(name);
+				nativeContextRef.remove(name);
 				leaveContext(name);
 			} else {
-				contextExternalRef.put(name, value - 1);
+				nativeContextRef.put(name, value - 1);
 			}
 		}
 	}
@@ -100,11 +99,22 @@ public class SmartContext extends Service {
 		
 		initLua();
 		
-		contextExternalRef = new HashMap<String, Integer>();
-		contextInternalRef = new HashMap<String, Integer>();
-		
+		nativeContextRef = new HashMap<String, Integer>();
+
 		wifi = new WifiContext(this);
 		wifi.onCreate();
+		try {
+			InputStream is;
+			try {
+				is = openFileInput("wifi_context.txt");
+			} catch (Exception x) {
+                // Fallback file location
+				is = getAssets().open("wifi_context.txt");
+			}
+			wifi.addRulesFromReader(new InputStreamReader(is));
+		} catch (Exception x) {
+			x.printStackTrace();
+		}
 		
 		motion = new MotionContext(this);
 		motion.onCreate();
@@ -131,14 +141,6 @@ public class SmartContext extends Service {
 		} catch (Exception x) {
 			x.printStackTrace();
 		}
-
-        // Test rule
-		WifiRule rule = new WifiRule();
-		rule.ssid = "Columbia University";
-		rule.list_type = WifiRule.LIST_TYPE_BLACK;
-		rule.level_threshold = -100;
-		rule.result_context = "Wifi@ColumbiaUniversity";
-		wifi.addRule(rule);
 		
 		wifi.bind();
 		motion.bind();

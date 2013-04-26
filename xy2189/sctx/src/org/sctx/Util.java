@@ -1,5 +1,7 @@
 package org.sctx;
 
+import java.net.URLDecoder;
+
 import android.util.Log;
 import android.widget.TextView;
 
@@ -10,8 +12,8 @@ class Util {
 		runInUIThread(new Runnable() {			
 			@Override
 			public void run() {
-				TextView text = EntryActivity.singleton.logText;
 				try {
+					TextView text = EntryActivity.singleton.logText;
 					text.append(msg + "\n");
 				} catch (Exception x) { }
 			}
@@ -22,5 +24,14 @@ class Util {
 		if (EntryActivity.handler == null) return false;
 		EntryActivity.handler.post(r);
 		return true;
+	}
+	
+	public static String decodeString(String s) {
+		if (s == null) return null;
+		try {
+			return URLDecoder.decode(s, "utf-8");
+		} catch (Exception x) {
+			return null;
+		}
 	}
 }

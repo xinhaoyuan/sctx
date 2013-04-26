@@ -2,6 +2,7 @@ package org.sctx;
 
 import java.io.BufferedReader;
 import java.io.Reader;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -78,7 +79,7 @@ public class ContextInferenceEngine {
 		Scanner s = new Scanner(str);
 		s.useDelimiter(",");
 		try {
-			String name = s.next();
+			String name = Util.decodeString(s.next());
 			// Invalid name
 			if (name.contains("@")) return null;
 			if (symbols.containsKey(name)) return null;
@@ -123,7 +124,7 @@ public class ContextInferenceEngine {
 		Scanner s = new Scanner(str);
 		s.useDelimiter("\\+");
 		while (s.hasNext()) {
-			String item = s.next();
+			String item = Util.decodeString(s.next());
 			int m;
 			if (item.startsWith("!")) {
 				item = item.substring(1);
@@ -227,7 +228,6 @@ public class ContextInferenceEngine {
 			updateQueueNode node = queue.poll();
 			if (node.name.equals(last)) continue;
 			modifySet.add(node.name);
-			Util.log("!!! " + node.name);
 			last = node.name;
 			
 			boolean v = symbols.get(node.name);

@@ -2,11 +2,13 @@ package org.sctx;
 
 import java.io.BufferedReader;
 import java.io.Reader;
+import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Scanner;
 import java.util.StringTokenizer;
 
 import android.content.BroadcastReceiver;
@@ -15,6 +17,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
+import android.util.Log;
 
 class WifiContext {
 	static final String wifi_service = Context.WIFI_SERVICE;
@@ -74,12 +77,38 @@ class WifiContext {
 		BufferedReader in = new BufferedReader(r);
 		while (true) {
 			String line;
-			try { line = in.readLine(); }
-			catch(Exception x) { line = null; }
+			try {
+				line = in.readLine();
+			} catch(Exception x) { line = null; }
 			if (line == null) break;
 			
-			StringTokenizer tokens = new StringTokenizer(line);
-			// TODO: parse rules
+			Scanner s = new Scanner(line);
+			s.useDelimiter(",");
+			
+			try {
+				String context = "Wifi@" + Util.decodeString(s.next());
+				String ssid = Util.decodeString(s.next());
+				int threshold = s.nextInt();
+				String type = s.next();
+				int list_item_count = s.nextInt();
+				HashSet<String> list = new HashSet<String>();
+				for (int i = 0; i < list_item_count; ++ i)
+				{
+					list.add(s.next());
+				}
+				// hasNext indicate format error
+				if (s.hasNext()) continue;
+				
+				WifiRule rule = new WifiRule();
+				rule.result_context = context;
+				rule.ssid = ssid;
+				rule.level_threshold = threshold;
+				rule.list_type = type.equalsIgnoreCase("black") ? WifiRule.LIST_TYPE_BLACK : WifiRule.LIST_TYPE_WHITE;
+				rule.essid_list = list;
+				addRule(rule);
+			} catch (Exception x) {
+				continue;
+			}
 		}
 	}
 	
@@ -99,6 +128,8 @@ class WifiContext {
 		}
 		
 		for (ScanResult item : result) {
+			Log.i("wifiResult", item.SSID);
+			
 			if (!ssidToRules.containsKey(item.SSID)) continue;
 			it = ssidToRules.get(item.SSID).iterator();
 			while (it.hasNext())
@@ -112,9 +143,9 @@ class WifiContext {
 		while (it.hasNext()) {
 			WifiRule rule = it.next();
 			if (rule.lastRefCount == 0 && rule.refCount > 0)
-				ctx.getExternalContext(rule.result_context);
+				ctx.getNativeContext(rule.result_context);
 			else if (rule.lastRefCount > 0 && rule.refCount == 0)
-				ctx.putExternalContext(rule.result_context);
+				ctx.putNativeContext(rule.result_context);
 		}
 		
 		wifiLastScanResult = result;
