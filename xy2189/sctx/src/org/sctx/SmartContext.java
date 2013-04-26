@@ -72,7 +72,7 @@ public class SmartContext extends Service {
 		Iterator<String> it = updateList.iterator();
 		while (it.hasNext()) {
 			String symbol = it.next();
-			Util.log("Enter context " + symbol);
+			notifyContext(symbol);
 		}
 	}
 	
@@ -82,9 +82,16 @@ public class SmartContext extends Service {
 		Iterator<String> it = updateList.iterator();
 		while (it.hasNext()) {
 			String symbol = it.next();
-			Util.log("Leave context " + symbol);
+			notifyContext(symbol);
 		}
 	}
+	
+	void notifyContext(String name) {
+		boolean v = eng.symbols.get(name);
+		if (v)
+			Util.log("Enter context " + name);
+		else Util.log("Leave context " + name);
+	}	
 	
 	@Override
 	public void onCreate() {
@@ -107,12 +114,25 @@ public class SmartContext extends Service {
 		
 		eng = new ContextInferenceEngine();
 		try {
-			InputStream is = openFileInput("symbol_rules.txt");
+			InputStream is;
+			try {
+				is = openFileInput("symbol_rules.txt");
+			} catch (Exception x) {
+                // Fallback file location
+				is = getAssets().open("symbol_rules.txt");
+			}
 			eng.init(new InputStreamReader(is));
+			Iterator<String> it = eng.symbols.keySet().iterator();
+			while (it.hasNext()) {
+				String name = it.next();
+				if (eng.symbols.get(name))
+					notifyContext(name);
+			}
 		} catch (Exception x) {
 			x.printStackTrace();
 		}
-		
+
+        // Test rule
 		WifiRule rule = new WifiRule();
 		rule.ssid = "Columbia University";
 		rule.list_type = WifiRule.LIST_TYPE_BLACK;
@@ -125,7 +145,8 @@ public class SmartContext extends Service {
 		sound.bind();
 		
 		Util.log("SmartContext service created");
-		
+
+        // For testing the LUA engine
 		queueLuaCode("print \"Hello world\"");
 	}
 	

@@ -158,7 +158,9 @@ public class ContextInferenceEngine {
 			} catch (Exception x) {
 				break;
 			}
-			parse(line);
+			if (line == null) break;
+			if (parse(line) == null)
+				Util.log("Error while parsing line " + line);
 		}
 	}
 	
@@ -204,7 +206,8 @@ public class ContextInferenceEngine {
 	
 	void updateSystemSymbol(String name, boolean value, Collection<String> modifySet) {
 		if (!name.contains("@")) return;
-		if (symbols.get(name) == value) return;
+		boolean old = symbols.containsKey(name) ? symbols.get(name) : false;
+		if (old == value) return;
 		symbols.put(name, value);
 		
 		PriorityQueue<updateQueueNode> queue = new PriorityQueue<updateQueueNode>(1, new Comparator<updateQueueNode>() {
@@ -223,11 +226,15 @@ public class ContextInferenceEngine {
 		while (!queue.isEmpty()) {
 			updateQueueNode node = queue.poll();
 			if (node.name.equals(last)) continue;
-			modifySet.add(name);
+			modifySet.add(node.name);
+			Util.log("!!! " + node.name);
 			last = node.name;
 			
 			boolean v = symbols.get(node.name);
-			Iterator<Clause> it = clauses.get(node.name).iterator();
+			HashSet<Clause> affectClauses = clauses.get(node.name);
+			if (affectClauses == null) continue;
+			
+			Iterator<Clause> it = affectClauses.iterator();
 			while (it.hasNext()) {
 				Clause c = it.next();
 				boolean h = c.holds();
