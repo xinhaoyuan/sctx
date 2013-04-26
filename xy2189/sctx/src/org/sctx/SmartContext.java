@@ -1,15 +1,11 @@
 package org.sctx;
 
 import java.io.ByteArrayOutputStream;
-import java.io.FileReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Scanner;
-import java.util.Set;
-
 import org.keplerproject.luajava.JavaFunction;
 import org.keplerproject.luajava.LuaException;
 import org.keplerproject.luajava.LuaState;
@@ -17,15 +13,14 @@ import org.keplerproject.luajava.LuaStateFactory;
 
 import android.annotation.SuppressLint;
 import android.app.Service;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.ReceiverCallNotAllowedException;
 import android.content.res.AssetManager;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 public class SmartContext extends Service {
 	
@@ -85,8 +80,28 @@ public class SmartContext extends Service {
 		}
 	}
 	
-	void notifyContext(String name) {
-		boolean v = eng.symbols.get(name);
+	void notifyContext(final String name) {
+		final boolean v = eng.symbols.get(name);
+		Util.runInUIThread(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					EntryActivity a = EntryActivity.singleton;
+					HashMap<String, TextView> map = a.contextViews;
+					LinearLayout c = a.contextViewContainer;
+					
+					if (v) {
+						TextView tag = new TextView(a);
+						tag.setText(name);
+						map.put(name, tag);
+						c.addView(tag);
+					} else {
+						c.removeView(map.get(name));
+						map.remove(name);
+					}
+				} catch (Exception x) { }
+			}
+		});
 		if (v)
 			Util.log("Enter context " + name);
 		else Util.log("Leave context " + name);
@@ -96,6 +111,17 @@ public class SmartContext extends Service {
 	public void onCreate() {
 		handler = new Handler();
 		msger = new Messenger(handler);
+		
+		Util.runInUIThread(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					EntryActivity a = EntryActivity.singleton;
+					a.contextViews.clear();
+					a.contextViewContainer.removeAllViews();
+				} catch (Exception x) { }
+			}
+		});
 		
 		initLua();
 		

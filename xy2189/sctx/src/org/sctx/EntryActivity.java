@@ -1,10 +1,13 @@
 package org.sctx;
 
+import java.util.HashMap;
+
 import android.app.Activity;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.os.Handler;
 import android.content.Intent;
 import android.os.Bundle;
@@ -16,7 +19,10 @@ public class EntryActivity extends Activity
 	static Handler handler;
 	
 	TextView logText;
-
+	LinearLayout contextViewContainer;
+	
+	HashMap<String, TextView> contextViews;
+	
     void setTabBtn(final int btnId, final ViewGroup parent, final int childId) {
     	Button tabBtn = (Button)findViewById(btnId);
 		tabBtn.setOnClickListener(new OnClickListener() {
@@ -43,6 +49,9 @@ public class EntryActivity extends Activity
         setContentView(R.layout.main);
         
         logText = (TextView)findViewById(R.id.LogText);
+        contextViewContainer = (LinearLayout)findViewById(R.id.ContextViewContainer);
+        contextViews = new HashMap<String, TextView>();
+        
         ViewGroup tabView = (ViewGroup)findViewById(R.id.TabLayout);
         
 		singleton = this;
@@ -81,7 +90,7 @@ public class EntryActivity extends Activity
 		});
 		
 		setTabBtn(R.id.LogTabBtn, tabView, R.id.LogLayout);
-		setTabBtn(R.id.WifiRuleTabBtn, tabView, R.id.WifiRuleLayout);
+		setTabBtn(R.id.ContextView, tabView, R.id.ContextViewLayout);
 		
 		for (int i = 0; i < tabView.getChildCount(); ++ i)
 			tabView.getChildAt(i).setVisibility(i == 0 ? View.VISIBLE : View.INVISIBLE);

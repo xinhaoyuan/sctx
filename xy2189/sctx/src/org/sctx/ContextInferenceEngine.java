@@ -2,7 +2,6 @@ package org.sctx;
 
 import java.io.BufferedReader;
 import java.io.Reader;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -12,10 +11,6 @@ import java.util.Iterator;
 import java.util.PriorityQueue;
 import java.util.Scanner;
 import java.util.Set;
-
-import org.sctx.ContextInferenceEngine.updateQueueNode;
-
-import android.util.SparseArray;
 
 public class ContextInferenceEngine {
 	
