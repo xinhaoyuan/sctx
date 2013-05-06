@@ -1,2 +1,1 @@
-Office,Wifi@Office+!Wifi@Home
-Home,Wifi@Home+!Wifi@Office
+SmartSilent,ss.txt

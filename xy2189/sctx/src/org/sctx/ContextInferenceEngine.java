@@ -69,7 +69,7 @@ public class ContextInferenceEngine {
 	HashMap<String, HashSet<Clause>> clauses;
 	ArrayList<ContextSymbol> symbolsById;
 	
-	ContextSymbol parse(String str) {
+	ContextSymbol parse(String nspc, String str) {
 		ContextSymbol d = new ContextSymbol();
 		Scanner s = new Scanner(str);
 		s.useDelimiter(",");
@@ -77,13 +77,16 @@ public class ContextInferenceEngine {
 			String name = Util.decodeString(s.next());
 			// Invalid name
 			if (name.contains("@")) return null;
+			if (name.contains("$")) return null;
+			// Composite the name
+			name = nspc + "$" + name;
 			if (symbols.containsKey(name)) return null;
 			d.holdCount = 0;
 			d.name = name;
 			d.clauses = new HashSet<Clause>();
 			while (s.hasNext()) {
 				String c_str = s.next();
-				Clause c = parseClause(d, c_str);
+				Clause c = parseClause(nspc, d, c_str);
 				if (c == null) return null;
 				if (c.holds()) ++ d.holdCount;
 				d.clauses.add(c);
@@ -110,7 +113,7 @@ public class ContextInferenceEngine {
 		return d;
 	}
 	
-	Clause parseClause(ContextSymbol d, String str) {
+	Clause parseClause(String nspc, ContextSymbol d, String str) {
 		Clause c = new Clause();
 		c.symbol = d;
 		c.waitingCount = 0;
@@ -127,8 +130,13 @@ public class ContextInferenceEngine {
 			} else {
 				m = 0;
 			}
-
-			if (!item.contains("@") && !symbols.containsKey(item)) return null;
+			
+			if (item.contains("$")) return null;
+			if (!item.contains("@")) {
+				item = nspc + "$" + item;
+				if (!symbols.containsKey(item)) return null;
+				if (item.equals(d.name)) return null;
+			}
 			
 			boolean value = symbols.containsKey(item) ? symbols.get(item) : false;
 			if (m == 0 && value) m = 2;
@@ -140,12 +148,14 @@ public class ContextInferenceEngine {
 		return c;
 	}
 	
-	void init(Reader _in) {
-		BufferedReader in = new BufferedReader(_in);
-
+	void init() {
 		symbols = new HashMap<String, Boolean>();
 		clauses = new HashMap<String, HashSet<Clause>>();
 		symbolsById = new ArrayList<ContextSymbol>();
+	}
+	
+	void parseReader(String nspc, Reader _in) {
+		BufferedReader in = new BufferedReader(_in);
 		
 		while (true) {
 			String line;
@@ -155,7 +165,7 @@ public class ContextInferenceEngine {
 				break;
 			}
 			if (line == null) break;
-			if (parse(line) == null)
+			if (parse(nspc, line) == null)
 				Util.log("Error while parsing line " + line);
 		}
 	}

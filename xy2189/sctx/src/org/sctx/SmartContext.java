@@ -1,39 +1,44 @@
 package org.sctx;
 
-import java.io.ByteArrayOutputStream;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
-import org.keplerproject.luajava.JavaFunction;
-import org.keplerproject.luajava.LuaException;
-import org.keplerproject.luajava.LuaState;
-import org.keplerproject.luajava.LuaStateFactory;
+import java.util.Queue;
 
 import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Intent;
-import android.content.res.AssetManager;
+import android.net.wifi.ScanResult;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
+import android.view.View;
+import android.view.ViewGroup.LayoutParams;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public class SmartContext extends Service {
 	
 	static SmartContext singleton = null;
+	static Handler handler;
 	
-	Handler handler;
 	Messenger msger;
 	
 	WifiContext wifi;
 	MotionContext motion;
 	SoundContext sound;
 	
-	LuaState L;
+	DemoLuaRuntime lua;
 	
 	HashMap<String, Integer> nativeContextRef;
 	
@@ -104,32 +109,28 @@ public class SmartContext extends Service {
 				} catch (Exception x) { }
 			}
 		});
-		if (v)
-			Util.log("Enter context " + name);
-		else Util.log("Leave context " + name);
+		if (!name.contains("@"))
+		{
+			int idx = name.indexOf('$');
+			String ns = name.substring(0, idx);
+			String sym = name.substring(idx + 1);
+			lua.queueLuaCode(ns + "_" + (v ? "enter" : "leave") + "(\"" + sym + "\")");
+		}
 	}	
 	
 	@Override
 	public void onCreate() {
-		if (singleton != null) throw new RuntimeException("SmartContext is already running");
-		singleton = this;
+		synchronized (SmartContext.class) {
+			if (singleton != null) throw new RuntimeException("SmartContext is already running");
+			singleton = this;
+			handler = new Handler();
+		}
 		
-		handler = new Handler();
 		msger = new Messenger(handler);
+		lua = new DemoLuaRuntime(this);
 		
-		Util.runInUIThread(new Runnable() {
-			@Override
-			public void run() {
-				try {
-					EntryActivity a = EntryActivity.singleton;
-					a.contextViews.clear();
-					a.contextViewContainer.removeAllViews();
-				} catch (Exception x) { }
-			}
-		});
-		
-		initLua();
-		
+		lua.onCreate();
+
 		nativeContextRef = new HashMap<String, Integer>();
 
 		wifi = new WifiContext(this);
@@ -162,7 +163,8 @@ public class SmartContext extends Service {
                 // Fallback file location
 				is = getAssets().open("symbol_rules.txt");
 			}
-			eng.init(new InputStreamReader(is));
+			eng.init();
+			initContextEng(new InputStreamReader(is));
 			Iterator<String> it = eng.symbols.keySet().iterator();
 			while (it.hasNext()) {
 				String name = it.next();
@@ -178,16 +180,17 @@ public class SmartContext extends Service {
 		sound.bind();
 		
 		Util.log("SmartContext service created");
-
-        // For testing the LUA engine
-		queueLuaCode("print \"Hello world\"");
+		
+		lua.queueLuaCode("require \"demo\"");
+		
+		resetUI(null);
 	}
 	
 	@Override
 	public void onDestroy() {
 		Util.log("Destroying the SmartContext service");
 		
-		L.close();
+		lua.onDestroy();
 		
 		wifi.unbind();
 		motion.unbind();
@@ -197,127 +200,37 @@ public class SmartContext extends Service {
 		motion.onDestroy();
 		sound.onDestory();
 		
-		singleton = null;
-	}
-	
-	private static byte[] readAll(InputStream input) throws Exception {
-		ByteArrayOutputStream output = new ByteArrayOutputStream(4096);
-		byte[] buffer = new byte[4096];
-		int n = 0;
-		while (-1 != (n = input.read(buffer))) {
-			output.write(buffer, 0, n);
-		}
-		return output.toByteArray();
-	}
-	
-	void initLua() {
-		L = LuaStateFactory.newLuaState();
-		L.openLibs();
-		
-		try {
-			JavaFunction print = new JavaFunction(L) {
-				@Override
-				public int execute() throws LuaException {
-					StringBuilder output = new StringBuilder();
-					for (int i = 2; i <= L.getTop(); i++) {
-						int type = L.type(i);
-						String stype = L.typeName(type);
-						String val = null;
-						if (stype.equals("userdata")) {
-							Object obj = L.toJavaObject(i);
-							if (obj != null)
-								val = obj.toString();
-						} else if (stype.equals("boolean")) {
-							val = L.toBoolean(i) ? "true" : "false";
-						} else {
-							val = L.toString(i);
-						}
-						if (val == null)
-							val = stype;						
-						output.append(val);
-						output.append("\t");
-					}
-					Util.log(output.toString());					
-					return 0;
-				}
-			};
-			print.register("print");
-			
-			JavaFunction assetLoader = new JavaFunction(L) {
-				@Override
-				public int execute() throws LuaException {
-					String name = L.toString(-1);
-
-					AssetManager am = getAssets();
-					try {
-						InputStream is = am.open(name + ".lua");
-						byte[] bytes = readAll(is);
-						L.LloadBuffer(bytes, name);
-						return 1;
-					} catch (Exception e) {
-						ByteArrayOutputStream os = new ByteArrayOutputStream();
-						e.printStackTrace();
-						L.pushString("Cannot load module "+name+":\n"+os.toString());
-						return 1;
-					}
-				}
-			};
-			
-			L.getGlobal("package");            // package
-			L.getField(-1, "loaders");         // package loaders
-			int nLoaders = L.objLen(-1);       // package loaders
-			
-			L.pushJavaFunction(assetLoader);   // package loaders loader
-			L.rawSetI(-2, nLoaders + 1);       // package loaders
-			L.pop(1);                          // package
-						
-			L.getField(-1, "path");            // package path
-			String customPath = getFilesDir() + "/?.lua";
-			L.pushString(";" + customPath);    // package path custom
-			L.concat(2);                       // package pathCustom
-			L.setField(-2, "path");            // package
-			L.pop(1);
-		} catch (Exception e) {
-			Util.log("Error while overriding LUA functions");
+		synchronized (SmartContext.class) {
+			singleton = null;
+			handler = null;
 		}
 	}
 	
-	private String errorReason(int error) {
-		switch (error) {
-		case 4:
-			return "Out of memory";
-		case 3:
-			return "Syntax error";
-		case 2:
-			return "Runtime error";
-		case 1:
-			return "Yield error";
-		}
-		return "Unknown error " + error;
-	}
-	
-	void queueLuaCode(final String src) {
-		handler.post(new Runnable() {
-
-			@Override
-			public void run() {
-				L.setTop(0);
-				int ok = L.LloadString(src);
-				if (ok == 0) {
-					L.getGlobal("debug");
-					L.getField(-1, "traceback");
-					L.remove(-2);
-					L.insert(-2);
-					ok = L.pcall(0, 0, -2);
-					if (ok == 0) {
-						return;
-					}
-				}
-				String msg = errorReason(ok) + ": " + L.toString(-1);
-				Util.log("LUA error: " + msg);
+	void initContextEng(Reader _in) {
+		BufferedReader in = new BufferedReader(_in);
+		HashSet<String> namespaces = new HashSet<String>();
+		while (true) {
+			String line;
+			try { line = in.readLine(); } catch (Exception x) { line = null; }
+			if (line == null) break;
+			int pos = line.indexOf(',');
+			if (pos == -1 || pos == 0 || pos == line.length() - 1) break;
+			String nspc = Util.decodeString(line.substring(0, pos));
+			String path = Util.decodeString(line.substring(pos + 1));
+			if (namespaces.contains(nspc)) continue;
+			Util.log("Processing rule file " + path + " with namespace " + nspc);
+			InputStream is;
+			try { is = openFileInput(path); } catch (Exception x) { is = null; }
+			
+			if (is == null) {
+				try { is = getAssets().open(path); } catch (Exception x) { is = null; }
 			}
-			
-		});
+			if (is == null) {
+				try { is = new FileInputStream(path); } catch (Exception x) { is = null; }
+			}
+			if (is == null) continue;
+			eng.parseReader(nspc, new InputStreamReader(is));
+		}
 	}
 	
 	@SuppressLint("HandlerLeak")
@@ -333,32 +246,173 @@ public class SmartContext extends Service {
         return msger.getBinder();
     }
 	
-	public void resetUI() {
+	public void resetUI(final Bundle args) {
 		Iterator<String> it = eng.symbols.keySet().iterator();
-		final ArrayList<String> list = new ArrayList<String>();
+		
+		final ArrayList<String> ctx_list = new ArrayList<String>();
 		while (it.hasNext()) {
 			String k = it.next();
 			boolean v = eng.symbols.get(k);
-			if (v) list.add(k);
+			if (v) ctx_list.add(k);
+		}
+		
+		final ArrayList<String> wifi_symbol_list = new ArrayList<String>();
+		Iterator<WifiRule> rule_it = wifi.rules.iterator();
+		HashSet<String> wifi_symbol = new HashSet<String>();
+		
+		while (rule_it.hasNext()) {
+			WifiRule r = rule_it.next();
+			wifi_symbol.add(r.result_context);
+		}
+		
+		it = wifi_symbol.iterator();
+		while (it.hasNext()) {
+			String k = it.next();
+			wifi_symbol_list.add(k);
+		}
+		
+		final ArrayList<String> wifi_symbol_ssid_list;
+		final ArrayList<String> wifi_scan_result;
+		if (args != null && args.containsKey("wifiSymbolName")) {
+			String name = args.getString("wifiSymbolName");
+			
+			wifi_symbol_ssid_list = new ArrayList<String>();
+			wifi_scan_result = new ArrayList<String>();
+			
+			Iterator<WifiRule> rit = wifi.rules.iterator();
+			while (rit.hasNext()) {
+				WifiRule r = rit.next();
+				if (!r.result_context.equals(name)) continue;
+				wifi_symbol_ssid_list.add(r.ssid);
+			}
+			
+			if (wifi.wifiLastScanResult != null) {
+				Iterator<ScanResult> sit = wifi.wifiLastScanResult.iterator();
+				while (sit.hasNext()) {
+					ScanResult sr = sit.next();
+					wifi_scan_result.add(sr.SSID);
+				}
+			}
+		} else {
+			wifi_symbol_ssid_list = null;
+			wifi_scan_result = null;
 		}
 		
 		Util.runInUIThread(new Runnable() {
 			@Override
 			public void run() {
 				try {
-					EntryActivity a = EntryActivity.singleton;
-					a.contextViews.clear();
-					a.contextViewContainer.removeAllViews();
-					
-					Iterator<String> it = list.iterator();
-					while (it.hasNext()) {
-						String k = it.next();
-						TextView tag = new TextView(a);
-						tag.setText(k);
-						a.contextViews.put(k, tag);
-						a.contextViewContainer.addView(tag);
+					final EntryActivity a = EntryActivity.singleton;
+					if (a != null && a.isResumed) {
+						a.contextViews.clear();
+						a.contextViewContainer.removeAllViews();
+						
+						Iterator<String> it = ctx_list.iterator();
+						while (it.hasNext()) {
+							String k = it.next();
+							TextView tag = new TextView(a);
+							tag.setText(k);
+							a.contextViews.put(k, tag);
+							a.contextViewContainer.addView(tag);
+						}
+						
+						a.wifiSymbolsContainer.removeAllViews();
+						it = wifi_symbol_list.iterator();
+						while (it.hasNext()) {
+							final String wifiSymbolName = it.next();
+							
+							LinearLayout ll = new LinearLayout(a);
+							ll.setOrientation(LinearLayout.HORIZONTAL);
+							
+							TextView tag = new TextView(a);
+							tag.setText(wifiSymbolName);
+							tag.setLayoutParams(new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, 1));
+							ll.addView(tag);
+							
+							Button editBtn = new Button(a);
+							editBtn.setText("EDIT");
+							editBtn.setLayoutParams(new LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, 0));
+							ll.addView(editBtn);
+							
+							Button rmvBtn = new Button(a);
+							rmvBtn.setText("DEL");
+							rmvBtn.setLayoutParams(new LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, 0));
+							ll.addView(rmvBtn);
+							
+							editBtn.setOnClickListener(new View.OnClickListener() {
+								@Override
+								public void onClick(View v) {
+									Intent i = new Intent(a, WifiRuleActivity.class);
+									i.putExtra("symbolName", wifiSymbolName);
+									a.startActivity(i);
+								}
+							});
+							
+							rmvBtn.setOnClickListener(new View.OnClickListener() {
+								@Override
+								public void onClick(View v) {
+									Util.runInSCThread(new Runnable() {
+										public void run() {
+											wifi.removeRules(wifiSymbolName, null);
+											wifi.saveRulesToLocal();
+											resetUI(null);
+										}
+									});
+								}
+							});
+							a.wifiSymbolsContainer.addView(ll);
+						}
 					}
-				} catch (Exception x) { }
+					
+					final WifiRuleActivity b = WifiRuleActivity.singleton;
+					if (b != null && b.isResumed &&
+						args != null && args.containsKey("wifiSymbolName") && 
+						args.getString("wifiSymbolName") == b.symbolName) {
+						
+						b.wifiNamesContainer.removeAllViews();
+						
+						Iterator<String> it = wifi_symbol_ssid_list.iterator();
+						while (it.hasNext()) {
+							final String ssid = it.next();
+							
+							LinearLayout ll = new LinearLayout(a);
+							ll.setOrientation(LinearLayout.HORIZONTAL);
+							
+							TextView tag = new TextView(b);
+							tag.setText(ssid);
+							tag.setLayoutParams(new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, 1));
+							ll.addView(tag);
+							
+							Button rmvBtn = new Button(a);
+							rmvBtn.setText("DEL");
+							rmvBtn.setLayoutParams(new LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, 0));
+							ll.addView(rmvBtn);
+							
+							rmvBtn.setOnClickListener(new View.OnClickListener() {
+								@Override
+								public void onClick(View v) {
+									Util.runInSCThread(new Runnable() {
+										public void run() {
+											wifi.removeRules(b.symbolName, ssid);
+											wifi.saveRulesToLocal();
+											Bundle args = new Bundle();
+											args.putString("wifiSymbolName", b.symbolName);
+											resetUI(args);
+										}
+									});
+								}
+							});
+							
+							b.wifiNamesContainer.addView(ll);
+						}
+						
+						b.wifiSignalList.setAdapter(
+								new ArrayAdapter<String>(b, android.R.layout.simple_list_item_1,
+										wifi_scan_result.toArray(new String[0])));
+					}
+				} catch (Exception x) {
+					x.printStackTrace();
+				}
 			}
 		});
 	}

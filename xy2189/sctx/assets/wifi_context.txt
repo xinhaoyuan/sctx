@@ -1,2 +1,4 @@
 Office,Columbia%20University,-100,BLACK,0
 Home,HIGH_LAND,-100,BLACK,0
+Home,signalsource-trendnet,-100,BLACK,0
+Home,dreamaker-aap,-100,BLACK,0

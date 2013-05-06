@@ -30,7 +30,7 @@ public class SoundContext {
 		startRecording();
 		if (monitor == null) {
 			monitor = new SoundMonitorRunnable();
-			ctx.handler.post(monitor);
+			Util.runInSCThread(monitor);
 		}
 	}
 	
@@ -74,17 +74,16 @@ public class SoundContext {
 		@Override
 		public void run() {
 			
-			ctx.handler.post(listener = new SoundListener());
-			ctx.handler.postDelayed(new Runnable() {
+			Util.runInSCThread(listener = new SoundListener());
+			Util.runInSCThreadDelayed(new Runnable() {
 				@Override
 				public void run() {
 					listener.active = false;
 					listener = null;
-
-					Util.log("Background AMP: " + background_amp_level);
-					
 					if (!active) return;
-					ctx.handler.postDelayed(self, samplingInterval);
+					
+					Util.log("Background AMP: " + background_amp_level);
+					Util.runInSCThreadDelayed(self, samplingInterval);
 				}
 			}, samplingLength);
 		}
@@ -99,7 +98,7 @@ public class SoundContext {
 					amp = recorder.getMaxAmplitude();
 				}
 				background_amp_level = background_amp_level * 0.7 + 0.3 * amp;
-				ctx.handler.postDelayed(this, samplingRate);
+				Util.runInSCThreadDelayed(this, samplingRate);
 			}
 		}
 	}

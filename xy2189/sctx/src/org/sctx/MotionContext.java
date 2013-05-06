@@ -45,7 +45,7 @@ public class MotionContext {
 	void bind() {
 		if (monitor == null) {
 			monitor = new AccMonitorRunnable();
-			ctx.handler.post(monitor);
+			Util.runInSCThread(monitor);
 		}
 	}
 	
@@ -69,7 +69,7 @@ public class MotionContext {
 			final ListenerNode node = new ListenerNode(accListener, acc);
 			sensorManager.registerListener(accListener, acc, SensorManager.SENSOR_DELAY_GAME);
 			listening.add(node);
-			ctx.handler.postDelayed(new Runnable() {
+			Util.runInSCThreadDelayed(new Runnable() {
 				@Override
 				public void run() {
 					if (listening.contains(node)) {
@@ -81,7 +81,7 @@ public class MotionContext {
 					
 					setLinearAccContext(accListener.linear_acc[0], accListener.linear_acc[1], accListener.linear_acc[2]);
 					// setLinearAccContext(accListener.gravity[0], accListener.gravity[1], accListener.gravity[2]);
-					ctx.handler.postDelayed(self, accSamplingInterval);
+					Util.runInSCThreadDelayed(self, accSamplingInterval);
 				}
 			}, accSamplingLength);
 		}

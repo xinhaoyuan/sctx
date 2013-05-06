@@ -1,7 +1,11 @@
 package org.sctx;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.Reader;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -31,6 +35,21 @@ class WifiContext {
 	HashMap<String, HashSet<WifiRule>> ssidToRules;
 	HashSet<WifiRule> rules;
 	
+	class WifiScanPusher implements Runnable {
+		boolean active;
+		
+		public void run() {
+			if (!active) return;
+			if (wifiManager.getWifiState() == WifiManager.WIFI_STATE_ENABLED) {
+				Util.log("Requested to refresh wifi");
+				wifiManager.startScan();
+			}
+			Util.runInSCThreadDelayed(this, 5000);
+		}
+	}
+	
+	WifiScanPusher pusher;
+	
 	WifiContext(SmartContext ctx) {
 		this.ctx = ctx;
 	}
@@ -48,6 +67,10 @@ class WifiContext {
 		intentFilter.addAction(wifi_state_changed_action);
 		intentFilter.addAction(wifi_rssi_changed_action);
 		ctx.registerReceiver(wifiListener, intentFilter);
+		
+		pusher = new WifiScanPusher();
+		pusher.active = true;
+		Util.runInSCThread(pusher);
 	}
 	
 	void addRule(WifiRule rule) {
@@ -110,6 +133,8 @@ class WifiContext {
 	}
 	
 	void unbind() {
+		pusher.active = false;
+		pusher = null;
 		ctx.unregisterReceiver(wifiListener);
 	}
 	
@@ -163,6 +188,72 @@ class WifiContext {
 			} else if (action == WifiContext.wifi_rssi_changed_action && wifiEnabled) {
 				setWifiScanResult(wifiManager.getScanResults());
 			}
+		}
+	}
+	
+	void removeRules(String symbolName, String ssid) {
+		Util.log("remove rules in conf " + symbolName + "," + ssid);
+		
+		Iterator<WifiRule> rit = rules.iterator();
+		ArrayList<WifiRule> delList = new ArrayList<WifiRule>();
+		
+		while (rit.hasNext()) {
+			WifiRule r = rit.next();
+			if ((symbolName == null || symbolName.equals(r.result_context)) &&
+				(ssid == null || ssid.equals(r.ssid))) {
+				delList.add(r);
+			}
+		}
+		
+		rit = delList.iterator();
+		while (rit.hasNext()) {
+			WifiRule r = rit.next();
+			removeRule(r);
+		}
+		
+		Util.log("" + delList.size() + " rules removed");
+	}
+	
+	void saveRulesToLocal() {
+		BufferedWriter out;
+		try {
+			OutputStream o = ctx.openFileOutput("wifi_context.txt", 0);
+			out = new BufferedWriter(new OutputStreamWriter(o));
+		} catch (Exception x) {
+			x.printStackTrace();
+			return;
+		}
+		
+		HashMap<String, HashSet<String>> conf = new HashMap<String, HashSet<String>>();
+		Iterator<WifiRule> rit = rules.iterator();
+		while (rit.hasNext())
+		{
+			WifiRule r = rit.next();
+			if (!conf.containsKey(r.result_context))
+				conf.put(r.result_context, new HashSet<String>());
+			conf.get(r.result_context).add(r.ssid);
+		}
+		
+		Iterator<String> sit = conf.keySet().iterator();
+		while (sit.hasNext()) {
+			String symbol = sit.next();
+			Iterator<String> idit = conf.get(symbol).iterator();
+			symbol = symbol.substring("Wifi@".length());
+			while (idit.hasNext())
+			{
+				String ssid = idit.next();
+				try {
+					out.write(Util.encodeString(symbol) + "," + Util.encodeString(ssid) + ",-200,BLACK,0");
+					out.newLine();
+				} catch (Exception x) {
+					x.printStackTrace();
+					return;
+				}
+			}
+		}
+		
+		try { out.close(); } catch (Exception x) {
+			x.printStackTrace();
 		}
 	}
 }

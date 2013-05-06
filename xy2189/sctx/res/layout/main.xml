@@ -20,6 +20,12 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Context View" />
+
+        <Button
+            android:id="@+id/WifiSymbols"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Wifi Symbols" />
     </LinearLayout>
 
     <FrameLayout
@@ -29,11 +35,58 @@
         android:layout_weight="1" >
 
         <LinearLayout
-            android:id="@+id/LogLayout"
+            android:id="@+id/WifiSymbolsLayout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
             android:visibility="invisible" >
+
+            <ScrollView
+                android:id="@+id/WifiSymbolsScrollContainer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1" >
+
+                <LinearLayout
+                    android:id="@+id/WifiSymbolsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical" >
+                </LinearLayout>
+            </ScrollView>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="0" >
+
+                <EditText
+                    android:id="@+id/WifiSymbolInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:singleLine="true"
+                    android:ems="10"
+                    android:lines="1" >
+
+                    <requestFocus />
+                </EditText>
+
+                <Button
+                    android:id="@+id/AddWifiSymbol"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Add" />
+
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/LogLayout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="visible" >
 
             <TextView
                 android:id="@+id/LogText"
@@ -60,6 +113,13 @@
                     android:text="Stop" />
 
                 <Button
+                    android:id="@+id/ResetConf"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Reset Conf" />
+
+                <Button
                     android:id="@+id/ClearBtn"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -79,7 +139,8 @@
             android:id="@+id/ContextViewLayout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical" >
+            android:orientation="vertical"
+            android:visibility="invisible" >
 
             <ScrollView
                 android:id="@+id/ContextViewScrollContainer"
@@ -91,11 +152,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:orientation="vertical" >
-
                 </LinearLayout>
-
             </ScrollView>
-
         </LinearLayout>
     </FrameLayout>
 
