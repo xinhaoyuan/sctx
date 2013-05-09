@@ -16,9 +16,6 @@ import android.widget.TextView;
 
 public class EntryActivity extends Activity
 {
-	static EntryActivity singleton;
-	static Handler handler;
-	
 	boolean isResumed;
 	TextView logText;
 	LinearLayout contextViewContainer;
@@ -52,13 +49,8 @@ public class EntryActivity extends Activity
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
-    	synchronized (EntryActivity.class) {
-    		if (singleton != null) {
-        		throw new RuntimeException("EntryActivity already exists");
-        	}
-    		singleton = this;
-    		if (handler == null) handler = new Handler();
-		}
+    	Singletons.uiHandler.tryRegister(new Handler());
+    	Singletons.ea.register(this);
     	
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
@@ -94,7 +86,7 @@ public class EntryActivity extends Activity
 		        stopService(intent);
 			}
 		});
-		
+			
 		Button resetConfBtn = (Button)findViewById(R.id.ResetConf);
 		resetConfBtn.setOnClickListener(new View.OnClickListener() {
 			@Override
@@ -139,8 +131,9 @@ public class EntryActivity extends Activity
 		Util.runInSCThread(new Runnable() {
 			@Override
 			public void run() {
-				if (SmartContext.singleton != null) 
-					SmartContext.singleton.resetUI(null);
+				SmartContext sc = Singletons.sc.get();
+				if (sc != null) 
+					sc.resetUI(null);
 			}
 		});
     	isResumed = true;
@@ -183,9 +176,7 @@ public class EntryActivity extends Activity
     
     @Override
     public void onDestroy() {
-    	synchronized (EntryActivity.class) {
-    		singleton = null;
-    	}
+    	Singletons.ea.clear();
     	super.onDestroy();
     }
 }

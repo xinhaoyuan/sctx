@@ -2,6 +2,7 @@ package org.sctx;
 
 import java.util.HashSet;
 
+import android.os.Handler;
 import android.os.Bundle;
 import android.app.Activity;
 import android.view.Menu;
@@ -13,7 +14,6 @@ import android.widget.TextView;
 
 public class WifiRuleActivity extends Activity {
 
-	static WifiRuleActivity singleton;
 	boolean isResumed = false;
 	String symbolName;
 	
@@ -22,12 +22,8 @@ public class WifiRuleActivity extends Activity {
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
-		synchronized (WifiRuleActivity.class) {
-			if (singleton != null) {
-				throw new RuntimeException("there can be only one instance of WifiRuleActivity");
-			}
-			singleton = this;
-		}
+		Singletons.wra.register(this);
+		Singletons.uiHandler.tryRegister(new Handler());
 		
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_wifi_rules);
@@ -51,12 +47,13 @@ public class WifiRuleActivity extends Activity {
 				r.result_context = symbolName;
 				Util.runInSCThread(new Runnable() {
 					public void run() {
-						if (SmartContext.singleton != null) { 
-							SmartContext.singleton.wifi.addRule(r);
+						SmartContext sc = Singletons.sc.get();
+						if (sc != null) { 
+							sc.wifi.addRule(r);
 							Bundle args = new Bundle();
 							args.putString("wifiSymbolName", symbolName);
-							SmartContext.singleton.wifi.saveRulesToLocal();
-							SmartContext.singleton.resetUI(args);
+							sc.wifi.saveRulesToLocal();
+							sc.resetUI(args);
 						}
 					}
 				});
@@ -68,9 +65,7 @@ public class WifiRuleActivity extends Activity {
 
 	@Override
 	protected void onDestroy() {
-		synchronized (WifiRuleActivity.class) {
-			singleton = null;
-		}
+		Singletons.wra.clear();
 		super.onDestroy();
 	}
 	
@@ -83,8 +78,9 @@ public class WifiRuleActivity extends Activity {
 		Util.runInSCThread(new Runnable() {
 			@Override
 			public void run() {
-				if (SmartContext.singleton != null) 
-					SmartContext.singleton.resetUI(args);
+				SmartContext sc = Singletons.sc.get();
+				if (sc != null) 
+					sc.resetUI(args);
 			}
 		});
 		

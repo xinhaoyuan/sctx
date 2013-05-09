@@ -17,7 +17,8 @@ class Util {
 			@Override
 			public void run() {
 				try {
-					TextView text = EntryActivity.singleton.logText;
+					EntryActivity ea = Singletons.ea.get();
+					TextView text = ea.logText;
 					text.append(msg + "\n");
 				} catch (Exception x) { }
 			}
@@ -25,36 +26,27 @@ class Util {
 	}
 	
 	public static boolean runInUIThread(Runnable r) {
-		Handler handler;
-		synchronized (EntryActivity.class) {
-			handler = EntryActivity.handler;
-		}
+		Handler handler = Singletons.uiHandler.get();
 		if (handler == null) return false;
 		handler.post(r);
 		return true;
 	}
 	
 	public static boolean runInSCThread(Runnable r) {
-		Handler handler;
-		synchronized (SmartContext.class) {
-			handler = SmartContext.handler;
-		}
+		Handler handler = Singletons.scHandler.get();
 		if (handler == null) return false;
 		handler.post(r);
 		return true;
 	}
 	
 	public static boolean runInSCThreadDelayed(Runnable r, long delay) {
-		Handler handler;
-		synchronized (SmartContext.class) {
-			handler = SmartContext.handler;
-		}
+		Handler handler = Singletons.scHandler.get();
 		if (handler == null) return false;
 		handler.postDelayed(r, delay);
 		return true;
 	}
 	
-	public static String decodeString(String s) {
+	public static String decodeURLString(String s) {
 		if (s == null) return null;
 		try {
 			return URLDecoder.decode(s, "utf-8");
@@ -63,7 +55,7 @@ class Util {
 		}
 	}
 	
-	public static String encodeString(String s) {
+	public static String encodeURLString(String s) {
 		if (s == null) return null;
 		try {
 			return URLEncoder.encode(s, "utf-8");
@@ -71,4 +63,40 @@ class Util {
 			return null;
 		}
 	}
+}
+
+class SingletonHolder<T> {
+	T i;
+	
+	synchronized T get() {
+		return i;
+	}
+	
+	synchronized void register(T i) {
+		if (this.i != null && this.i != i)
+			throw new RuntimeException("Cannot set singleton holder twice");
+		this.i = i;
+	}
+	
+	synchronized boolean tryRegister(T i) {
+		if (this.i == null) { 
+			this.i = i;
+			return true;
+		}
+		else return false;
+	}
+	
+	synchronized void clear() {
+		if (i == null)
+			throw new RuntimeException("Cannot clear empty singleton holder");
+		i = null;
+	}
+}
+
+class Singletons {
+	static SingletonHolder<Handler> scHandler;
+	static SingletonHolder<Handler> uiHandler;
+	static SingletonHolder<SmartContext> sc;
+	static SingletonHolder<EntryActivity> ea;
+	static SingletonHolder<WifiRuleActivity> wra;
 }

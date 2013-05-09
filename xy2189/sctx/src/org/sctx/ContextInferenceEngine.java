@@ -74,7 +74,7 @@ public class ContextInferenceEngine {
 		Scanner s = new Scanner(str);
 		s.useDelimiter(",");
 		try {
-			String name = Util.decodeString(s.next());
+			String name = Util.decodeURLString(s.next());
 			// Invalid name
 			if (name.contains("@")) return null;
 			if (name.contains("$")) return null;
@@ -122,7 +122,7 @@ public class ContextInferenceEngine {
 		Scanner s = new Scanner(str);
 		s.useDelimiter("\\+");
 		while (s.hasNext()) {
-			String item = Util.decodeString(s.next());
+			String item = Util.decodeURLString(s.next());
 			int m;
 			if (item.startsWith("!")) {
 				item = item.substring(1);

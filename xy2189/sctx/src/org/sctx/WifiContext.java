@@ -106,8 +106,8 @@ class WifiContext {
 			s.useDelimiter(",");
 			
 			try {
-				String context = "Wifi@" + Util.decodeString(s.next());
-				String ssid = Util.decodeString(s.next());
+				String context = "Wifi@" + Util.decodeURLString(s.next());
+				String ssid = Util.decodeURLString(s.next());
 				int threshold = s.nextInt();
 				String type = s.next();
 				int list_item_count = s.nextInt();
@@ -243,7 +243,7 @@ class WifiContext {
 			{
 				String ssid = idit.next();
 				try {
-					out.write(Util.encodeString(symbol) + "," + Util.encodeString(ssid) + ",-200,BLACK,0");
+					out.write(Util.encodeURLString(symbol) + "," + Util.encodeURLString(ssid) + ",-200,BLACK,0");
 					out.newLine();
 				} catch (Exception x) {
 					x.printStackTrace();

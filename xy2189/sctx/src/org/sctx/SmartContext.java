@@ -29,9 +29,7 @@ import android.widget.TextView;
 
 public class SmartContext extends Service {
 	
-	static SmartContext singleton = null;
-	static Handler handler;
-	
+	Handler handler;
 	Messenger msger;
 	
 	WifiContext wifi;
@@ -93,7 +91,7 @@ public class SmartContext extends Service {
 			@Override
 			public void run() {
 				try {
-					EntryActivity a = EntryActivity.singleton;
+					EntryActivity a = Singletons.ea.get();
 					HashMap<String, TextView> map = a.contextViews;
 					LinearLayout c = a.contextViewContainer;
 					
@@ -120,11 +118,8 @@ public class SmartContext extends Service {
 	
 	@Override
 	public void onCreate() {
-		synchronized (SmartContext.class) {
-			if (singleton != null) throw new RuntimeException("SmartContext is already running");
-			singleton = this;
-			handler = new Handler();
-		}
+		Singletons.sc.register(this);
+		Singletons.scHandler.register(handler = new Handler());
 		
 		msger = new Messenger(handler);
 		lua = new DemoLuaRuntime(this);
@@ -190,6 +185,9 @@ public class SmartContext extends Service {
 	public void onDestroy() {
 		Util.log("Destroying the SmartContext service");
 		
+		Singletons.sc.clear();
+		Singletons.scHandler.clear();
+		
 		lua.onDestroy();
 		
 		wifi.unbind();
@@ -199,11 +197,6 @@ public class SmartContext extends Service {
 		wifi.onDestroy();
 		motion.onDestroy();
 		sound.onDestory();
-		
-		synchronized (SmartContext.class) {
-			singleton = null;
-			handler = null;
-		}
 	}
 	
 	void initContextEng(Reader _in) {
@@ -215,8 +208,8 @@ public class SmartContext extends Service {
 			if (line == null) break;
 			int pos = line.indexOf(',');
 			if (pos == -1 || pos == 0 || pos == line.length() - 1) break;
-			String nspc = Util.decodeString(line.substring(0, pos));
-			String path = Util.decodeString(line.substring(pos + 1));
+			String nspc = Util.decodeURLString(line.substring(0, pos));
+			String path = Util.decodeURLString(line.substring(pos + 1));
 			if (namespaces.contains(nspc)) continue;
 			Util.log("Processing rule file " + path + " with namespace " + nspc);
 			InputStream is;
@@ -302,7 +295,7 @@ public class SmartContext extends Service {
 			@Override
 			public void run() {
 				try {
-					final EntryActivity a = EntryActivity.singleton;
+					final EntryActivity a = Singletons.ea.get();
 					if (a != null && a.isResumed) {
 						a.contextViews.clear();
 						a.contextViewContainer.removeAllViews();
@@ -364,7 +357,7 @@ public class SmartContext extends Service {
 						}
 					}
 					
-					final WifiRuleActivity b = WifiRuleActivity.singleton;
+					final WifiRuleActivity b = Singletons.wra.get();
 					if (b != null && b.isResumed &&
 						args != null && args.containsKey("wifiSymbolName") && 
 						args.getString("wifiSymbolName") == b.symbolName) {
